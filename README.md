@@ -4,7 +4,19 @@ Upload an image, pick some transformations, get the result back. Node.js, Expres
 
 ## Architecture
 
-![Deployed architecture](docs/architecture.svg)
+```mermaid
+flowchart LR
+  Browser -->|HTTPS| Client[React client]
+  Client -->|JWT| API[Express API]
+  API -->|SQL| DB[(PostgreSQL)]
+  API -->|put original| S3[(S3 bucket)]
+  API -->|publish job| Queue[SQS transformations]
+  Queue -->|batch of 10| Worker[Lambda worker]
+  Worker -->|result| S3
+  Queue -->|after 3 tries| DLQ[Dead letter queue]
+  API -.->|sign-in link| Resend[Resend]
+  Google[Google OAuth] -.->|callback| API
+```
 
 Every request goes through the API. A separate worker does the image work, with the queue in between.
 
